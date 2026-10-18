@@ -1,0 +1,121 @@
+% Reto 3 - Algoritmo de control y cargas
+% Curso: Software para Ingenieria 203036
+
+clc; % Limpiar la ventana de comandos
+clear; % Limpiar las variables almacenadas
+
+% Definir las 24 horas de simulacion
+horas = 1:24;
+
+% Registrar la generacion de energia solar por hora (kW)
+solar = [0 0 0 0 0 5 8 12 16 20 23 25 ...
+         23 20 16 12 8 5 0 0 0 0 0 0];
+
+% Registrar la generacion de energia eolica por hora (kW)
+eolica = [8 10 7 12 9 11 6 13 10 8 14 12 ...
+          9 15 11 7 13 10 8 12 9 14 10 7];
+
+% Registrar la demanda de energia por hora (kW)
+demanda = [3 3 2 4 3 6 7 8 8 9 10 9 ...
+           8 9 10 9 8 15 15 15 15 4 3 2];
+
+% Definir la capacidad de la bateria en kWh
+capacidad_bateria = 100;
+
+% Definir el estado de carga inicial de la bateria (%)
+SOC = 50;
+
+% Iniciar el ciclo para evaluar las 24 horas
+for i = 1:24
+
+    % Sumar la generacion solar y eolica
+    generacion_total = solar(i) + eolica(i);
+
+    % Calcular el balance energetico de la hora
+    balance = generacion_total - demanda(i);
+
+    % Inicializar los excedentes y deficits no atendidos
+    excedente_no_almacenado = 0;
+    deficit_no_cubierto = 0;
+
+    % Verificar si la generacion cubre la demanda
+    if generacion_total >= demanda(i)
+
+        % Calcular el excedente de energia disponible
+        excedente = balance;
+
+        % Calcular el espacio disponible en la bateria (kWh)
+        espacio_bateria = capacidad_bateria * (100 - SOC) / 100;
+
+        % Almacenar solo la energia que cabe en la bateria
+        energia_almacenada = min(excedente, espacio_bateria);
+
+        % Actualizar el SOC sin superar el 100 %
+        SOC = SOC + energia_almacenada / capacidad_bateria * 100;
+
+        % Calcular el excedente que no pudo almacenarse
+        excedente_no_almacenado = excedente - energia_almacenada;
+
+    else
+
+        % Calcular el deficit de energia de la hora
+        deficit = abs(balance);
+
+        % Calcular la energia disponible en la bateria (kWh)
+        energia_disponible = capacidad_bateria * SOC / 100;
+
+        % Entregar energia sin exceder la disponible
+        energia_entregada = min(deficit, energia_disponible);
+
+        % Actualizar el SOC sin bajar del 0 %
+        SOC = SOC - energia_entregada / capacidad_bateria * 100;
+
+        % Calcular el deficit que no pudo cubrirse
+        deficit_no_cubierto = deficit - energia_entregada;
+
+    end
+
+    % Establecer inicialmente todas las cargas activas
+    escuela = 'Activa';
+    bombeo = 'Activo';
+    alumbrado = 'Activo';
+
+    % Aplicar el control de cargas segun el SOC actualizado
+    if SOC <= 20
+
+        % En emergencia, desconectar cargas no prioritarias
+        bombeo = 'Desconectado';
+        alumbrado = 'Desconectado';
+
+    elseif SOC <= 40
+
+        % En alerta, desconectar solo el alumbrado publico
+        alumbrado = 'Desconectado';
+
+    end
+
+    % Mostrar el numero de hora evaluada
+    fprintf('\nHora: %d\n', horas(i));
+
+    % Mostrar generacion y demanda de energia
+    fprintf('Generacion total: %.2f kW\n', generacion_total);
+    fprintf('Demanda: %.2f kW\n', demanda(i));
+    fprintf('Balance energetico: %.2f kW\n', balance);
+
+    % Mostrar el estado de carga actualizado
+    fprintf('SOC de la bateria: %.2f %%\n', SOC);
+
+    % Mostrar excedentes o deficits no atendidos
+    fprintf('Excedente no almacenado: %.2f kWh\n', ...
+            excedente_no_almacenado);
+    fprintf('Deficit no cubierto: %.2f kWh\n', ...
+            deficit_no_cubierto);
+
+    % Mostrar el estado de cada carga priorizada
+    fprintf('Escuela: %s\n', escuela);
+    fprintf('Bombeo agricola: %s\n', bombeo);
+    fprintf('Alumbrado publico: %s\n', alumbrado);
+
+end
+% Fin del ciclo de simulacion de 24 horas
+
